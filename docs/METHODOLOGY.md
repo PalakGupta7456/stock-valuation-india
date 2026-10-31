@@ -136,8 +136,9 @@ on high-ROE compounders.
    above 35% / 60% (−12 / −25), intrinsic and relative blends more than 1.5× / 2× apart (−10 / −20),
    the blend's direction contradicted by most methods (−10), terminal value above 80% of EV (−8), and a
    coin-flip Monte Carlo (−5).
-5. **A call is only as strong as the evidence.** With low confidence (below 45), Strong Buy/Sell drop one
-   notch and Buy/Sell become Hold. Consensus ("6 of 9 methods above price") counts only methods that carry
+5. **A call is only as strong as the evidence.** With low confidence (below 45) there is no directional call
+   (Hold). A Strong Buy/Sell also needs intrinsic and relative methods to be within 2× of each other;
+   otherwise it is tempered to Buy/Sell. Consensus ("6 of 9 methods above price") counts only methods that carry
    weight in the blend.
 
 **Why intrinsic and relative values often disagree for Indian stocks.** With a 10-year G-sec near 7% and

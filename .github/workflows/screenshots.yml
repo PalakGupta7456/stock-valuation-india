@@ -15,7 +15,7 @@ permissions:
   contents: write
 
 concurrency:
-  group: commit-back
+  group: screenshots
   cancel-in-progress: false
 
 jobs:

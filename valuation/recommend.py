@@ -138,12 +138,14 @@ def build_verdict(price: float, methods: list[MethodResult], raw_weights: dict,
     conf_label = "High" if score >= 70 else "Medium" if score >= 45 else "Low"
 
     # --- conviction adjustment: a call is only as strong as the evidence behind it.
-    # Low confidence (< 45): Strong Buy/Sell drop one notch, Buy/Sell become Hold.
     rating = raw
     if conf_label == "Low" and raw in _ORDER and raw != "Hold":
-        idx = _ORDER.index(raw)
-        rating = _ORDER[idx + 1] if raw == "Strong Sell" else _ORDER[idx - 1] if raw == "Strong Buy" else "Hold"
-        reasons.append(f"{raw} tempered to {rating} because confidence is low ({score}/100).")
+        rating = "Hold"
+        reasons.append(f"No directional call: the models say {raw}, but confidence is low ({score}/100).")
+    elif raw in ("Strong Buy", "Strong Sell") and len(fam) == 2 and \
+            max(fam.values()) / min(fam.values()) > 2.0:
+        rating = raw.replace("Strong ", "")
+        reasons.append(f"{raw} tempered to {rating}: intrinsic and relative methods are more than 2× apart.")
 
     if not np.isfinite(upside):
         label = "Not determinable"

@@ -184,3 +184,19 @@ def test_financial_company_switches_to_equity_models():
     w = rep.verdict.weights
     assert w.get("DCF (FCFF)", 0) == 0 and w.get("Peer EV/EBITDA", 0) == 0
     assert w["Residual income"] >= 0.25
+
+
+def test_low_confidence_gives_no_directional_call():
+    from valuation.quality import Flag
+    methods = [_m("DCF (FCFF)", 300), _m("Peer P/E", 280), _m("Residual income", 320)]
+    w = {"DCF (FCFF)": 1, "Peer P/E": 1, "Residual income": 1}
+    bad_data = [Flag("error", "x", "", 60)]
+    v = build_verdict(100, methods, w, NO_MC, bad_data)
+    assert v.raw_rating == "Strong Buy" and v.rating == "Hold"
+
+
+def test_strong_call_needs_families_to_agree():
+    methods = [_m("DCF (FCFF)", 40), _m("Residual income", 45), _m("Peer P/E", 120), _m("Peer P/B", 125)]
+    w = {"DCF (FCFF)": 1, "Residual income": 1, "Peer P/E": 0.2, "Peer P/B": 0.2}
+    v = build_verdict(200, methods, w, NO_MC, [])
+    assert v.raw_rating == "Strong Sell" and v.rating in ("Sell", "Hold")

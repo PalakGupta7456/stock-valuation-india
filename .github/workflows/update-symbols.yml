@@ -14,7 +14,7 @@ permissions:
   contents: write
 
 concurrency:
-  group: commit-back
+  group: update-symbols
   cancel-in-progress: false
 
 jobs:
