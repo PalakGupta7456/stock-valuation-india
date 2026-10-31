@@ -91,3 +91,12 @@ METHOD_FAMILY = {
 }
 # Multiples outside these bounds are treated as noise when taking peer medians.
 MULTIPLE_BOUNDS = {"pe": (0.5, 150), "pb": (0.1, 40), "ev_ebitda": (0.5, 80), "ev_sales": (0.05, 40)}
+
+# Diversified groups and holding companies: one set of peers or one DCF cannot
+# capture their segments, so confidence is reduced and a sum-of-the-parts view
+# is suggested. Yahoo symbols without exchange suffix.
+CONGLOMERATES = {
+    "RELIANCE", "ADANIENT", "ITC", "GRASIM", "BAJAJFINSV", "M&M", "LT", "BAJAJHLDNG", "TATAINVEST",
+    "GODREJIND", "VEDL", "SIEMENS", "ABCAPITAL", "JSWHL", "CHOLAHLDNG",
+}
+MAX_CONFIDENCE = 95

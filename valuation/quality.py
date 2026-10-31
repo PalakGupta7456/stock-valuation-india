@@ -10,6 +10,7 @@ from datetime import datetime
 
 import numpy as np
 
+from . import config
 from .data import CompanyData, _latest
 from .dcf import DCFInputs
 
@@ -35,6 +36,11 @@ def run_checks(c: CompanyData, inp: DCFInputs, risk_free: float) -> list[Flag]:
                           "EV multiples are switched off. The blend leans on residual income, P/B, "
                           "P/E and dividends instead; Yahoo's statement data for lenders is also "
                           "less complete, so check book value against the annual report.", 10))
+    if c.ticker.split(".")[0] in config.CONGLOMERATES:
+        flags.append(Flag("warning", "Diversified group",
+                          "This company runs several distinct businesses (or holds stakes in listed "
+                          "subsidiaries). Peers and a single DCF capture only part of it; a sum-of-the-parts "
+                          "valuation would be more reliable.", 15))
     if n_years < 3:
         flags.append(Flag("warning", "Short history",
                           f"Only {n_years} year(s) of statements; defaults derived from history are noisy.",

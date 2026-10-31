@@ -134,7 +134,7 @@ def build_verdict(price: float, methods: list[MethodResult], raw_weights: dict,
     if np.isfinite(mc.prob_undervalued) and 0.4 <= mc.prob_undervalued <= 0.6:
         score -= 5
         reasons.append("DCF Monte Carlo is close to a coin flip on under- vs over-valuation.")
-    score = int(np.clip(score, 0, 100))
+    score = int(np.clip(score, 0, config.MAX_CONFIDENCE))
     conf_label = "High" if score >= 70 else "Medium" if score >= 45 else "Low"
 
     # --- conviction adjustment: a call is only as strong as the evidence behind it.

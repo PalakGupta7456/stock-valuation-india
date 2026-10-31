@@ -200,3 +200,17 @@ def test_strong_call_needs_families_to_agree():
     w = {"DCF (FCFF)": 1, "Residual income": 1, "Peer P/E": 0.2, "Peer P/B": 0.2}
     v = build_verdict(200, methods, w, NO_MC, [])
     assert v.raw_rating == "Strong Sell" and v.rating in ("Sell", "Hold")
+
+
+def test_conglomerate_flag_lowers_confidence():
+    from valuation.quality import run_checks
+    rel = replace(DEMO, ticker="RELIANCE.NS", is_demo=False)
+    inp = value_company(DEMO, Assumptions(mc_runs=200)).inputs
+    titles = [f.title for f in run_checks(rel, inp, 0.072)]
+    assert "Diversified group" in titles
+
+
+def test_confidence_never_100():
+    methods = [_m("DCF (FCFF)", 101), _m("Peer P/E", 100), _m("Residual income", 102)]
+    v = build_verdict(100, methods, {"DCF (FCFF)": 1, "Peer P/E": 1, "Residual income": 1}, NO_MC, [])
+    assert v.confidence <= 95

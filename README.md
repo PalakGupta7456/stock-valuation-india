@@ -20,7 +20,7 @@ Search by name ("asian paints"), NSE symbol (`ASIANPAINT`) or BSE code (`500820`
 
 ## Highlights
 
-- **Any listed Indian company.** A searchable list of every NSE (and BSE-only) company, refreshed weekly from the exchanges, plus name search through Yahoo Finance. Automatic NSE ↔ BSE fallback and a trailing-twelve-month fallback when a small cap has no annual statements.
+- **Any listed Indian company.** A searchable list of 5,200+ NSE and BSE companies, refreshed weekly from the exchanges, plus name search through Yahoo Finance. Automatic NSE ↔ BSE fallback and a trailing-twelve-month fallback when a small cap has no annual statements.
 - **Twelve methods on one chart.** A football-field chart shows each method's value and range against the market price, so you see agreement or disagreement at a glance.
 - **Sector-aware.** For banks, NBFCs and insurers, cash-flow DCFs and EV multiples are switched off and the blend leans on residual income, P/B, P/E and dividends.
 - **Honest confidence.** The score drops for thin or stale data and when methods disagree, for example when cash-flow models and peer multiples are more than 2× apart, and strong calls are toned down when confidence is low.
@@ -138,7 +138,7 @@ scripts/
   live_check.py              Values a basket of real stocks (used in CI)
   update_symbols.py          Rebuilds the NSE/BSE company list
   screenshots.py             Regenerates README screenshots from live data
-tests/                       39 unit tests with closed-form checks
+tests/                       45 unit tests with closed-form checks
 .github/workflows/           CI · live data check · company list refresh · screenshots
 ```
 
