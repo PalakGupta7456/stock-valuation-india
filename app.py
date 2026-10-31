@@ -10,9 +10,10 @@ import plotly.graph_objects as go
 import streamlit as st
 
 from valuation import Assumptions, config, fetch_company, normalise_ticker, value_company
-from valuation.data import derive_defaults
+from valuation.data import derive_defaults, search_tickers
 from valuation.export import to_excel
 from valuation.peers import demo_peers, fetch_peer_multiples, suggest_peers
+from valuation.universe import load_universe
 from valuation.wacc import estimate_beta
 
 # ---------------------------------------------------------------------------
@@ -157,22 +158,91 @@ def load_peers(tickers: tuple[str, ...]) -> pd.DataFrame:
     return fetch_peer_multiples(list(tickers))
 
 
+@st.cache_data(ttl=86400, show_spinner=False)
+def universe() -> pd.DataFrame:
+    return load_universe()
+
+
+@st.cache_data(ttl=3600, show_spinner=False)
+def name_search(q: str) -> list[dict]:
+    return search_tickers(q)
+
+
+def resolve(raw: str, suffix: str) -> tuple[str | None, list[dict]]:
+    """Turn whatever the user typed (symbol, BSE code or company name) into a Yahoo ticker."""
+    text = raw.strip()
+    if not text:
+        return None, []
+    compact = text.upper().replace(" ", "")
+    if compact == "DEMO" or "." in compact or compact.isdigit():
+        return normalise_ticker(compact, ".BO" if compact.isdigit() else suffix), []
+    u = universe()
+    if len(u):
+        exact = u[u.symbol.str.replace(r"\.(NS|BO)$", "", regex=True) == compact]
+        if len(exact):
+            return exact.symbol.iloc[0], []
+        by_name = u[u.name.str.lower().str.contains(text.lower(), regex=False)]
+        if len(by_name):
+            hits = [{"symbol": r.symbol, "name": r.name} for r in by_name.head(8).itertuples()]
+            return hits[0]["symbol"], hits
+    hits = name_search(text)
+    for h in hits:                                   # typed an exact symbol Yahoo knows
+        if h["symbol"].split(".")[0] == compact:
+            return h["symbol"], []
+    if hits:
+        return hits[0]["symbol"], hits
+    return normalise_ticker(compact, suffix), []
+
+
+def set_ticker(t: str) -> None:
+    st.session_state.ticker = t
+    st.query_params["ticker"] = t.removesuffix(".NS")
+
+
+# Shareable links: /?ticker=TCS or /?ticker=500325.BO
+if "qp_done" not in st.session_state:
+    st.session_state.qp_done = True
+    qp = st.query_params.get("ticker")
+    if qp:
+        st.session_state.ticker = normalise_ticker(qp)
+
 # ---------------------------------------------------------------------------
 # Sidebar: ticker
 # ---------------------------------------------------------------------------
+U = universe()
 with st.sidebar:
     st.markdown('<div class="brand">Intrinsic<small>12 valuation methods for NSE &amp; BSE stocks</small></div>',
                 unsafe_allow_html=True)
     st.write("")
     with st.form("ticker_form", border=False):
-        exch = st.radio("Exchange", ["NSE", "BSE"], horizontal=True)
-        raw = st.text_input("Ticker", value=st.session_state.get("raw_ticker", ""),
-                            placeholder="e.g. TCS, HDFCBANK, ASIANPAINT")
+        picked = None
+        if len(U):
+            picked = st.selectbox(f"Search {len(U):,} listed companies", U.label.tolist(), index=None,
+                                  placeholder="Start typing a name or symbol…")
+        raw = st.text_input("…or type any ticker, BSE code or company name" if len(U) else
+                            "Ticker, BSE code or company name",
+                            placeholder="e.g. TCS, 500325, asian paints")
+        exch = st.radio("Default exchange for typed symbols", ["NSE", "BSE"], horizontal=True)
         go_btn = st.form_submit_button("Value this stock", type="primary", width="stretch")
-    if go_btn and raw.strip():
-        st.session_state.raw_ticker = raw
-        st.session_state.ticker = normalise_ticker(raw, ".NS" if exch == "NSE" else ".BO")
-    st.caption("Type DEMO to try the app with a synthetic company.")
+    if go_btn:
+        if raw.strip():
+            with st.spinner("Finding the company…"):
+                t, hits = resolve(raw, ".NS" if exch == "NSE" else ".BO")
+            st.session_state.matches = hits
+            if t:
+                set_ticker(t)
+        elif picked:
+            set_ticker(U.loc[U.label == picked, "symbol"].iloc[0])
+            st.session_state.matches = []
+    hits = st.session_state.get("matches") or []
+    if len(hits) > 1:
+        st.caption("Other matches:")
+        for h in hits[1:6]:
+            if st.button(f"{h['name'][:34]} · {h['symbol']}", key=f"m_{h['symbol']}", width="stretch"):
+                set_ticker(h["symbol"])
+                st.session_state.matches = []
+                st.rerun()
+    st.caption("Works for any NSE or BSE listing on Yahoo Finance. Type DEMO for an offline sample.")
 
 ticker = st.session_state.get("ticker")
 
@@ -191,8 +261,7 @@ if not ticker:
     cols = st.columns(6)
     for col, t in zip(cols, ["TCS", "HDFCBANK", "RELIANCE", "ASIANPAINT", "ITC", "DEMO"], strict=False):
         if col.button(t, width="stretch"):
-            st.session_state.raw_ticker = t
-            st.session_state.ticker = normalise_ticker(t)
+            set_ticker(normalise_ticker(t))
             st.rerun()
     st.write("")
     a, b, c_ = st.columns(3)
@@ -218,7 +287,9 @@ try:
         company = load(ticker)
 except Exception as exc:  # noqa: BLE001
     st.error(f"Couldn't value {ticker}. {exc}")
-    st.info("Check the symbol on nseindia.com, switch exchange, or try DEMO to see the app working offline.")
+    st.info("Try the company name instead of the symbol (e.g. “asian paints”), a BSE code such as 500325, "
+            "or DEMO to see the app working offline. Yahoo Finance occasionally rate-limits; waiting a minute "
+            "and retrying usually helps.")
     st.stop()
 
 d = derive_defaults(company)

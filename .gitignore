@@ -10,3 +10,4 @@ env/
 *.xlsx
 .DS_Store
 .ipynb_checkpoints/
+reports/

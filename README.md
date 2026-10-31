@@ -1,64 +1,94 @@
-# Intrinsic — what is an Indian stock actually worth?
+<p align="center">
+  <img src="docs/banner.png" alt="Intrinsic — what is an Indian stock actually worth?" width="100%">
+</p>
 
-[![CI](https://github.com/OWNER/stock-valuation-india/actions/workflows/ci.yml/badge.svg)](https://github.com/OWNER/stock-valuation-india/actions/workflows/ci.yml)
-![Python](https://img.shields.io/badge/python-3.11%2B-0E5160)
-![Streamlit](https://img.shields.io/badge/built%20with-Streamlit-D98E1F)
-![License: MIT](https://img.shields.io/badge/license-MIT-5D6B70)
+<p align="center">
+  <a href="https://github.com/OWNER/REPO/actions/workflows/ci.yml"><img src="https://github.com/OWNER/REPO/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+  <a href="https://github.com/OWNER/REPO/actions/workflows/live-check.yml"><img src="https://github.com/OWNER/REPO/actions/workflows/live-check.yml/badge.svg" alt="Live data check"></a>
+  <img src="https://img.shields.io/badge/python-3.11%20|%203.12%20|%203.13-0E5160" alt="Python">
+  <img src="https://img.shields.io/badge/built%20with-Streamlit-D98E1F" alt="Streamlit">
+  <img src="https://img.shields.io/badge/license-MIT-5D6B70" alt="MIT">
+</p>
 
-Type an NSE or BSE ticker. **Intrinsic** values the company **twelve different ways**, blends them into one fair value with sector-aware weights, compares it with the market price and gives a **Buy / Hold / Sell** call, with a confidence score that is honest about how far the numbers can be trusted.
+**Intrinsic** values any company listed on the **NSE or BSE** using **live market data** and **twelve valuation methods** — discounted cash flow, residual income, dividend discount, earnings power, peer multiples, the stock's own history and Graham's rules — then blends them into one fair value, compares it with the market price and gives a **Buy / Hold / Sell** call with a confidence score that is honest about how far the numbers can be trusted.
 
-![Overview](docs/screenshots/overview.png)
+Search by name ("asian paints"), NSE symbol (`ASIANPAINT`) or BSE code (`500820`). Every result has a shareable link, e.g. `/?ticker=TCS`.
+
+![Valuation overview](docs/screenshots/overview.png)
 
 ---
 
-## What it does
+## Highlights
 
-| | Method | What it answers |
+- **Any listed Indian company.** A searchable list of every NSE (and BSE-only) company, refreshed weekly from the exchanges, plus name search through Yahoo Finance. Automatic NSE ↔ BSE fallback and a trailing-twelve-month fallback when a small cap has no annual statements.
+- **Twelve methods on one chart.** A football-field chart shows each method's value and range against the market price, so you see agreement or disagreement at a glance.
+- **Sector-aware.** For banks, NBFCs and insurers, cash-flow DCFs and EV multiples are switched off and the blend leans on residual income, P/B, P/E and dividends.
+- **Honest confidence.** The score drops for thin or stale data and when methods disagree, for example when cash-flow models and peer multiples are more than 2× apart, and strong calls are toned down when confidence is low.
+- **Indian cost of capital.** 10-year G-sec, India equity risk premium, beta regressed against the Nifty 50, synthetic credit rating, Sec 115BAA tax rate.
+- **Stress-tested.** Vectorised 5,000-run Monte Carlo, WACC × growth heatmap, tornado chart, bear/base/bull scenarios and a reverse DCF ("what growth is the price assuming?").
+- **Fully editable.** Every assumption, the peer group and the weight of each method can be changed in the sidebar.
+- **Exportable.** One-click Excel workbook with every model, table and check.
+- **Tested against real stocks.** A GitHub Action values ~30 live tickers (large, mid and small caps, banks, NBFCs, insurers, BSE codes, loss-makers) on every push and every week.
+
+## The twelve methods
+
+| Family | Method | What it answers |
 |---|---|---|
-| **Intrinsic** | DCF: free cash flow to the firm (FCFF) | What are the operating cash flows worth at the company's WACC? |
-| | DCF: free cash flow to equity (FCFE) | What is left for shareholders after debt, discounted at the cost of equity? |
-| | Residual income (Edwards-Bell-Ohlson) | Book value plus the present value of returns above the cost of equity. The main model for banks and NBFCs. |
-| | Dividend discount (two-stage) | What are the future dividends worth, with payout rising to a sustainable level? |
-| | Earnings power value (Greenwald) | What is today's business worth with **zero** growth? The gap to the DCF is what you pay for growth. |
-| **Relative** | Peer-median P/E, EV/EBITDA, P/B, EV/Sales | What would the stock trade at on its peers' multiples? |
+| **Intrinsic** | DCF: free cash flow to the firm | What are the operating cash flows worth at the company's WACC? |
+| | DCF: free cash flow to equity | What is left for shareholders after debt, at the cost of equity? |
+| | Residual income | Book value + present value of returns above the cost of equity. Lead model for lenders. |
+| | Dividend discount | Future dividends, with payout converging to a sustainable level. |
+| | Earnings power value | Today's business with **zero** growth: the gap to the price is the growth bet. |
+| **Relative** | Peer P/E, EV/EBITDA, P/B, EV/Sales | What would the stock trade at on its peers' median multiples? |
 | | Own 5-year P/E | What would it trade at on its own historical multiple? |
-| **Rule of thumb** | Graham number, Graham formula | Benjamin Graham's defensive-investor ceilings (shown for reference, weight 0 by default). |
+| **Rule of thumb** | Graham number, Graham formula | Benjamin Graham's defensive ceilings (reference only). |
 
-On top of the methods:
-
-- **Blended fair value and range.** A weighted average of every method that applies, plus the weighted 25th–75th percentile across methods.
-- **Sector awareness.** For banks, NBFCs and insurers, cash-flow DCFs and EV multiples are switched off and the blend leans on residual income, P/B, P/E and dividends.
-- **Consensus.** How many methods put the value above the market price.
-- **Confidence score (0–100).** It starts at 100 and drops for data problems (short history, negative earnings, stale or missing statements, currency mismatch) and for disagreement between methods, especially when intrinsic and market-relative methods are far apart.
-- **Stress tests.** 5,000-run Monte Carlo, WACC × terminal-growth heatmap, tornado chart of the drivers, bear/base/bull scenarios and a **reverse DCF** (what growth is the price assuming?).
-- **Indian cost of capital.** 10-year G-sec risk-free rate, India equity risk premium, beta regressed on 5 years of weekly returns against the Nifty 50 (Blume-adjusted), synthetic credit rating from interest coverage, 25.17% marginal tax under Sec 115BAA.
-- **Every assumption is editable** in the sidebar: growth, margins, terminal growth, cost of capital, peer list and the weight of each method.
-- **Excel export** of the full model (summary, all methods, FCFF/FCFE, residual income, DDM, peers, scenarios, sensitivity, data checks).
-- **Works offline** with a synthetic `DEMO` company, so it can be tried, tested and demoed without internet.
+Formulas, defaults and the confidence rules are in **[docs/METHODOLOGY.md](docs/METHODOLOGY.md)**.
 
 ## Screenshots
 
-| All twelve methods on one chart | Peer comparison |
+| Every method on one chart | Peer comparison |
 |---|---|
-| ![All methods](docs/screenshots/methods.png) | ![Relative](docs/screenshots/relative.png) |
+| ![All methods](docs/screenshots/methods.png) | ![Relative valuation](docs/screenshots/relative.png) |
+| **Residual income, dividends, no-growth value** | **Stress tests** |
+| ![Residual income and DDM](docs/screenshots/residual.png) | ![Stress tests](docs/screenshots/stress.png) |
 
-| Residual income, dividends and no-growth value | Stress tests |
-|---|---|
-| ![Residual income](docs/screenshots/residual.png) | ![Stress tests](docs/screenshots/stress.png) |
+<sub>Screenshots are regenerated from live data by the <code>Refresh screenshots</code> workflow.</sub>
+
+## How it works
+
+```mermaid
+flowchart LR
+    A[Ticker, BSE code<br/>or company name] --> B[Resolve symbol<br/>NSE/BSE list + Yahoo search]
+    B --> C[Yahoo Finance<br/>price, statements, 5y prices]
+    B --> P[Peer multiples<br/>curated industry peers]
+    C --> W[Cost of capital<br/>β vs Nifty 50, synthetic rating]
+    C --> Q[Data-quality checks]
+    W --> I[Intrinsic models<br/>FCFF · FCFE · RI · DDM · EPV]
+    C --> I
+    P --> R[Relative models<br/>P/E · EV/EBITDA · P/B · EV/Sales · own P/E]
+    C --> R
+    I --> V[Blend + confidence<br/>Buy / Hold / Sell]
+    R --> V
+    Q --> V
+    I --> S[Stress tests<br/>Monte Carlo · sensitivity · reverse DCF]
+    V --> UI[Streamlit dashboard<br/>+ Excel export]
+    S --> UI
+```
 
 ## Quick start
 
 ```bash
-git clone https://github.com/OWNER/stock-valuation-india.git
-cd stock-valuation-india
-python -m venv .venv && source .venv/bin/activate   # Windows: .venv\Scripts\activate
+git clone https://github.com/OWNER/REPO.git
+cd REPO
+python -m venv .venv && source .venv/bin/activate      # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
 streamlit run app.py
 ```
 
-Open http://localhost:8501, type a ticker (`TCS`, `HDFCBANK`, `RELIANCE`, `ASIANPAINT`, a BSE code like `500325` with the BSE toggle) or `DEMO`.
+Open http://localhost:8501 and search for any company, or type `DEMO` for an offline sample.
 
-### Use it from Python
+### From Python
 
 ```python
 from valuation import fetch_company, value_company, Assumptions
@@ -68,62 +98,69 @@ c = fetch_company("TCS.NS")
 peers = fetch_peer_multiples(suggest_peers(c.ticker, c.industry))
 rep = value_company(c, Assumptions(growth_high=0.09), peers)
 
-print(rep.verdict.rating, rep.verdict.fair_value, rep.verdict.upside)
+print(rep.verdict.rating, round(rep.verdict.fair_value), f"{rep.verdict.upside:+.0%}")
 print(rep.method_table[["Method", "Value", "Upside", "Weight"]])
 ```
 
-### Deploy for free
+### Value a basket from the command line
 
-1. Push this repo to GitHub.
-2. Go to [share.streamlit.io](https://share.streamlit.io), choose the repo, branch `main`, file `app.py`.
-3. Add the public URL to the top of this README.
-
-## How the verdict is built
-
-```
-fair value  = Σ weight_i × value_i     over methods that produce a positive value
-upside      = fair value / price − 1
-rating      = Strong Buy ≥ +30% | Buy ≥ +15% | Hold ≥ −10% | Sell ≥ −25% | Strong Sell
+```bash
+python scripts/live_check.py TCS HDFCBANK ITC 500325      # writes reports/live_check.md
 ```
 
-Default weights (non-financial): FCFF 25, residual income 15, peer P/E 12, peer EV/EBITDA 12, FCFE 10, earnings power 10, own P/E 5, DDM 5, peer P/B 3, peer EV/Sales 3. Financials: residual income 35, P/E 20, P/B 20, DDM 15, own P/E 10. Weights are renormalised over the methods that apply. A Strong Buy/Sell with low confidence is pulled one notch toward Hold; a Buy/Sell with very low confidence becomes Hold.
+### Deploy free on Streamlit Community Cloud
+
+1. Sign in at [share.streamlit.io](https://share.streamlit.io) with GitHub.
+2. **Create app → Deploy a public app from GitHub**, pick this repo, branch `main`, file `app.py`.
+3. Paste the app URL at the top of this README.
 
 ## Project structure
 
 ```
-app.py                  Streamlit dashboard
+app.py                       Streamlit dashboard
 valuation/
-  config.py             Market defaults (G-sec, ERP, tax, rating bands, method weights)
-  data.py               Yahoo Finance download and cleaning
-  peers.py              Curated Indian peer groups and peer multiples
-  wacc.py               Beta regression, synthetic rating, CAPM, WACC
-  dcf.py                Vectorised FCFF / FCFE engine
-  methods.py            Residual income, DDM, EPV, Graham, peer and historical multiples
-  analysis.py           Sensitivity, tornado, scenarios, Monte Carlo, reverse DCF
-  quality.py            Data-quality checks that reduce confidence
-  recommend.py          Blend, consensus, confidence and rating
-  export.py             Excel workbook export
-  demo.py               Synthetic company for offline use and tests
-tests/                  39 unit tests with closed-form checks
+  data.py                    Yahoo Finance fetch, retries, NSE↔BSE and TTM fallbacks, name search
+  universe.py                Searchable list of listed companies
+  peers.py                   Curated Indian peer groups and peer multiples
+  wacc.py                    Regression beta, synthetic rating, CAPM, WACC
+  dcf.py                     Vectorised FCFF / FCFE engine
+  methods.py                 Residual income, DDM, EPV, Graham, peer and historical multiples
+  analysis.py                Sensitivity, tornado, scenarios, Monte Carlo, reverse DCF
+  quality.py                 Data-quality checks that lower confidence
+  recommend.py               Blend, consensus, confidence and rating
+  export.py                  Excel export
+  config.py                  Market defaults and method weights
+scripts/
+  live_check.py              Values a basket of real stocks (used in CI)
+  update_symbols.py          Rebuilds the NSE/BSE company list
+  screenshots.py             Regenerates README screenshots from live data
+tests/                       39 unit tests with closed-form checks
+.github/workflows/           CI · live data check · company list refresh · screenshots
 ```
+
+## Engineering notes
+
+- **Correctness first.** Each model is unit-tested against a closed-form case: zero-growth DCF equals a perpetuity, unlevered FCFE equals FCFF, residual income equals book value when ROE = cost of equity, the DDM collapses to Gordon growth, reverse DCF recovers the growth that generated the price.
+- **One vectorised engine.** The same NumPy DCF powers the base case, scenarios, the 7 × 7 sensitivity grid and 5,000 Monte Carlo runs in milliseconds.
+- **Graceful degradation.** Every method returns a value *or* a plain-English reason it doesn't apply; the blend re-weights over what works instead of failing.
+- **Continuous verification.** Unit tests, lint and an app smoke test run on Python 3.11–3.13; a separate workflow checks live data weekly.
 
 ## Limitations
 
-- **Data comes from Yahoo Finance.** Indian coverage is good for large and mid caps but thinner for small caps and financials, and it only gives four years of annual statements. Always check key numbers against the annual report.
-- **Peers are curated by Yahoo industry label.** Unusual businesses may get poor peers; edit the list in the sidebar.
-- **Market defaults** (G-sec yield, ERP, AAA yield) are set in `valuation/config.py` as of late 2026 and should be refreshed when rates move.
-- **This is an educational tool, not investment advice.** It is not a SEBI-registered research analyst or adviser.
+- Yahoo Finance provides ~4 years of statements and is thinner for small caps and lenders. Verify key figures against the annual report.
+- Peer groups are curated by industry; edit them in the sidebar for unusual businesses.
+- Market defaults (G-sec, ERP, AAA yield) live in `valuation/config.py` and should be refreshed when rates move.
+- **Educational project, not investment advice.** Not a SEBI-registered research analyst or adviser.
 
 ## Roadmap
 
-- [ ] Screener.in / NSE filings as a second data source for 10-year history and better coverage of banks
-- [ ] Live G-sec yield and India ERP instead of config values
-- [ ] Sum-of-the-parts valuation for conglomerates (Reliance, L&T, Bajaj Finserv)
-- [ ] Bank-specific checks (NIM, GNPA, CASA, capital adequacy)
-- [ ] Watchlist mode: value 20 tickers at once and rank by upside × confidence
-- [ ] Backtest: how did past "Buy" calls perform over 12 months?
-- [ ] PDF one-pager export
+- [ ] Screener.in / exchange filings as a second source for 10-year history and better bank data
+- [ ] Live G-sec yield and India ERP
+- [ ] Sum-of-the-parts for conglomerates and holding companies
+- [ ] Bank-specific metrics (NIM, GNPA, CASA, capital adequacy)
+- [ ] Watchlist: value many tickers and rank by upside × confidence
+- [ ] Backtest of past ratings against 12-month returns
 
 ## License
 
-MIT, see [LICENSE](LICENSE).
+[MIT](LICENSE) © 2026 Palak Gupta

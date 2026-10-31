@@ -177,8 +177,65 @@ def _clean_statement(df: pd.DataFrame | None) -> pd.DataFrame | None:
 # ---------------------------------------------------------------------------
 # Main fetch
 # ---------------------------------------------------------------------------
-def fetch_company(ticker: str) -> CompanyData:
-    """Download statements, balance sheet and price history for one ticker."""
+def _retry(fn, tries: int = 3, base_delay: float = 1.5, default=None):
+    """Call fn(); retry with exponential backoff on network / rate-limit errors."""
+    import time
+    last = None
+    for i in range(tries):
+        try:
+            return fn()
+        except Exception as exc:  # noqa: BLE001 - yfinance raises many types
+            last = exc
+            msg = str(exc).lower()
+            if "404" in msg or "not found" in msg:
+                break
+            time.sleep(base_delay * (2 ** i))
+    if default is not None:
+        return default
+    raise last if last else RuntimeError("Yahoo Finance request failed")
+
+
+def _price_from(tk, info: dict) -> float | None:
+    p = info.get("currentPrice") or info.get("regularMarketPrice") or info.get("previousClose")
+    if p:
+        return float(p)
+    try:
+        p = tk.fast_info.get("lastPrice") or tk.fast_info.get("last_price")
+        if p and np.isfinite(p):
+            return float(p)
+    except Exception:  # noqa: BLE001
+        pass
+    try:
+        h = tk.history(period="5d")
+        if len(h):
+            return float(h["Close"].dropna().iloc[-1])
+    except Exception:  # noqa: BLE001
+        pass
+    return None
+
+
+def _alternate(ticker: str) -> str | None:
+    """NSE <-> BSE fallback for the same company."""
+    if ticker.endswith(".NS"):
+        return ticker[:-3] + ".BO"
+    if ticker.endswith(".BO") and not ticker[:-3].isdigit():
+        return ticker[:-3] + ".NS"
+    return None
+
+
+def _snapshot_series(value, when: pd.Timestamp) -> pd.Series:
+    v = _opt(value)
+    return pd.Series([v], index=[when], dtype=float) if v is not None else pd.Series(dtype=float)
+
+
+def fetch_company(ticker: str, _tried_alternate: bool = False) -> CompanyData:
+    """Download statements, balance sheet and price history for one ticker.
+
+    Works for any NSE (.NS) or BSE (.BO) listing Yahoo Finance covers. If the
+    symbol has no price on one exchange the other is tried automatically, and
+    when annual statements are missing (common for small caps) the model falls
+    back to Yahoo's trailing-twelve-month snapshot so a valuation still runs.
+    """
     if ticker == "DEMO":
         from .demo import demo_company
         return demo_company()
@@ -187,33 +244,55 @@ def fetch_company(ticker: str) -> CompanyData:
 
     tk = yf.Ticker(ticker)
     try:
-        info = tk.info or {}
-    except Exception as exc:  # network / rate-limit
-        raise RuntimeError(f"Could not reach Yahoo Finance for {ticker}: {exc}") from exc
+        info = _retry(lambda: tk.info or {})
+    except Exception as exc:  # noqa: BLE001
+        info = {}
+        net_err = exc
+    else:
+        net_err = None
 
-    price = info.get("currentPrice") or info.get("regularMarketPrice") or info.get("previousClose")
+    price = _price_from(tk, info)
     if not price:
+        alt = None if _tried_alternate else _alternate(ticker)
+        if alt:
+            try:
+                return fetch_company(alt, _tried_alternate=True)
+            except Exception:  # noqa: BLE001
+                pass
+        if net_err is not None:
+            raise RuntimeError(f"Could not reach Yahoo Finance for {ticker}: {net_err}") from net_err
         raise ValueError(
-            f"No price found for '{ticker}'. Check the symbol (e.g. RELIANCE.NS, TCS.NS, 500325.BO)."
+            f"No price found for '{ticker}'. Check the symbol (e.g. RELIANCE, TCS, or a BSE code like 500325)."
         )
 
-    inc = _clean_statement(tk.income_stmt)
-    cf = _clean_statement(tk.cashflow)
-    bs = _clean_statement(tk.balance_sheet)
-    if inc is None or inc.empty:
-        raise ValueError(f"Yahoo Finance returned no financial statements for {ticker}.")
-
     notes: list[str] = []
+    empty = pd.DataFrame()
+    inc = _clean_statement(_retry(lambda: tk.income_stmt, default=empty))
+    cf = _clean_statement(_retry(lambda: tk.cashflow, default=empty))
+    bs = _clean_statement(_retry(lambda: tk.balance_sheet, default=empty))
 
     revenue = _row(inc, ["Total Revenue", "Operating Revenue"])
     ebit = _row(inc, ["EBIT", "Operating Income"])
-    if ebit.dropna().empty:
-        ebit = _row(inc, ["Pretax Income"]) + _row(inc, ["Interest Expense"]).fillna(0)
-        notes.append("EBIT not reported; approximated as pre-tax income + interest.")
     net_income = _row(inc, ["Net Income Common Stockholders", "Net Income"])
     interest = _row(inc, ["Interest Expense", "Interest Expense Non Operating"]).abs()
     pretax = _row(inc, ["Pretax Income"])
     tax = _row(inc, ["Tax Provision"])
+    if ebit.dropna().empty and not pretax.dropna().empty:
+        ebit = pretax + interest.reindex(pretax.index).fillna(0)
+        notes.append("EBIT not reported; approximated as pre-tax income + interest.")
+
+    # --- fallback: trailing-twelve-month snapshot from Yahoo's quote summary ----
+    if revenue.dropna().empty:
+        today = pd.Timestamp.today().normalize()
+        rev_ttm = _opt(info.get("totalRevenue"))
+        if rev_ttm is None or rev_ttm <= 0:
+            raise ValueError(f"Yahoo Finance has no revenue data for {ticker}, so it cannot be valued.")
+        revenue = _snapshot_series(rev_ttm, today)
+        op_m = _opt(info.get("operatingMargins"))
+        ebit = _snapshot_series(rev_ttm * op_m if op_m is not None else info.get("ebitda"), today)
+        net_income = _snapshot_series(info.get("netIncomeToCommon"), today)
+        notes.append("Annual statements unavailable on Yahoo; using the trailing-twelve-month snapshot. "
+                     "History-based defaults (growth, margins) are rough.")
 
     da = _row(cf, ["Depreciation And Amortization", "Depreciation Amortization Depletion"])
     if da.dropna().empty:
@@ -222,31 +301,38 @@ def fetch_company(ticker: str) -> CompanyData:
     # yfinance reports the *cash-flow effect*; an increase in NWC is negative.
     delta_nwc = -_row(cf, ["Change In Working Capital"])
 
-    total_debt = _latest(_row(bs, ["Total Debt"]))
+    total_debt = _latest(_row(bs, ["Total Debt"]), _opt(info.get("totalDebt")) or 0.0)
     cash = _latest(_row(bs, ["Cash Cash Equivalents And Short Term Investments",
-                             "Cash And Cash Equivalents"]))
+                             "Cash And Cash Equivalents"]), _opt(info.get("totalCash")) or 0.0)
     minority = _latest(_row(bs, ["Minority Interest"]))
-    book_equity = _latest(_row(bs, ["Stockholders Equity", "Common Stock Equity"]))
-    shares = info.get("sharesOutstanding") or _latest(_row(bs, ["Ordinary Shares Number",
-                                                               "Share Issued"]))
+
+    shares = (_opt(info.get("sharesOutstanding")) or _opt(info.get("impliedSharesOutstanding"))
+              or ((_opt(info.get("marketCap")) or 0) / price if info.get("marketCap") else None)
+              or _latest(_row(bs, ["Ordinary Shares Number", "Share Issued"]), 0.0))
     if not shares:
         raise ValueError(f"Shares outstanding unavailable for {ticker}.")
 
+    book_hist = _row(bs, ["Stockholders Equity", "Common Stock Equity"])
+    book_equity = _latest(book_hist, np.nan)
+    if not np.isfinite(book_equity) and _opt(info.get("bookValue")):
+        book_equity = float(info["bookValue"]) * shares
+        notes.append("Book value taken from Yahoo's per-share figure.")
+    if not np.isfinite(book_equity):
+        book_equity = 0.0
+
     ebitda = _row(inc, ["EBITDA", "Normalized EBITDA"])
     if ebitda.dropna().empty:
-        ebitda = ebit + da.reindex(ebit.index).fillna(0)
-    book_hist = _row(bs, ["Stockholders Equity", "Common Stock Equity"])
+        ebitda = ebit + da.reindex(ebit.index).fillna(0) if len(da.dropna()) else \
+            _snapshot_series(info.get("ebitda"), revenue.index[-1])
 
     idx = revenue.index
     align = lambda s: s.reindex(idx) if len(idx) else s  # noqa: E731
 
-    hist = tk.history(period="5y", interval="1wk", auto_adjust=True)
-    try:
-        idx_hist = yf.Ticker(config.MARKET_INDEX).history(period="5y", interval="1wk",
-                                                          auto_adjust=True)
-        index_close = idx_hist["Close"]
-    except Exception:
-        index_close = pd.Series(dtype=float)
+    hist = _retry(lambda: tk.history(period="5y", interval="1wk", auto_adjust=True), default=empty)
+    idx_hist = _retry(lambda: yf.Ticker(config.MARKET_INDEX).history(period="5y", interval="1wk",
+                                                                     auto_adjust=True), default=empty)
+    index_close = idx_hist["Close"] if "Close" in idx_hist else pd.Series(dtype=float)
+    if index_close.empty:
         notes.append("Nifty 50 history unavailable; regression beta skipped.")
 
     return CompanyData(
@@ -271,7 +357,7 @@ def fetch_company(ticker: str) -> CompanyData:
         cash=cash,
         minority_interest=minority,
         book_equity=book_equity,
-        beta_reported=info.get("beta"),
+        beta_reported=_opt(info.get("beta")),
         price_history=hist["Close"] if "Close" in hist else pd.Series(dtype=float),
         index_history=index_close,
         dividend_per_share=float(info.get("dividendRate") or info.get("trailingAnnualDividendRate")
@@ -289,6 +375,29 @@ def fetch_company(ticker: str) -> CompanyData:
         week52_high=_opt(info.get("fiftyTwoWeekHigh")),
         notes=notes,
     )
+
+
+# ---------------------------------------------------------------------------
+# Finding a ticker
+# ---------------------------------------------------------------------------
+def search_tickers(query: str, limit: int = 8) -> list[dict]:
+    """Search Yahoo Finance by company name; return Indian listings only."""
+    import yfinance as yf
+
+    try:
+        quotes = yf.Search(query, max_results=20, news_count=0, lists_count=0,
+                           raise_errors=False).quotes or []
+    except Exception:  # noqa: BLE001
+        return []
+    out = []
+    for q in quotes:
+        sym = q.get("symbol", "")
+        if sym.endswith((".NS", ".BO")) and q.get("quoteType", "EQUITY") == "EQUITY":
+            out.append({"symbol": sym, "name": q.get("longname") or q.get("shortname") or sym,
+                        "exchange": "NSE" if sym.endswith(".NS") else "BSE"})
+    # prefer NSE when both listings appear
+    out.sort(key=lambda r: r["exchange"] != "NSE")
+    return out[:limit]
 
 
 # ---------------------------------------------------------------------------
