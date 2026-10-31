@@ -22,16 +22,19 @@ def load_universe() -> pd.DataFrame:
         if not path.exists():
             continue
         df = pd.read_csv(path, dtype=str).dropna(subset=["symbol"])
-        df["symbol"] = df["symbol"].str.strip().str.upper() + suffix
+        # BSE file: `symbol` is the numeric scrip code, `ticker` the trading symbol Yahoo uses.
+        col = "ticker" if "ticker" in df else "symbol"
+        df["symbol"] = df[col].str.strip().str.upper() + suffix
         df["name"] = df["name"].fillna("").str.strip()
         df["exchange"] = exch
         frames.append(df[["symbol", "name", "exchange"]])
     if not frames:
         return pd.DataFrame(columns=["symbol", "name", "exchange", "label"])
     u = pd.concat(frames, ignore_index=True)
-    # Keep the BSE listing only for companies not on NSE.
-    nse_names = set(u.loc[u.exchange == "NSE", "name"].str.lower())
-    u = u[(u.exchange == "NSE") | ~u["name"].str.lower().isin(nse_names)]
+    # Keep the BSE listing only for companies not on NSE (same trading symbol = same company).
+    base = u["symbol"].str.replace(r"\.(NS|BO)$", "", regex=True)
+    nse_syms = set(base[u.exchange == "NSE"])
+    u = u[(u.exchange == "NSE") | ~base.isin(nse_syms)]
     u["label"] = u["name"] + " · " + u["symbol"].str.replace(r"\.(NS|BO)$", "", regex=True) + \
         " (" + u["exchange"] + ")"
     return u.sort_values(["exchange", "name"]).reset_index(drop=True)

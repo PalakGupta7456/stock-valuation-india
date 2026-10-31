@@ -253,6 +253,8 @@ def resolve_bse_code(code: str) -> str | None:
         df = pd.read_csv(path, dtype=str)
         hit = df[df["symbol"].str.strip() == code]
         if len(hit):
+            if "ticker" in hit and isinstance(hit["ticker"].iloc[0], str) and not hit["ticker"].iloc[0].isdigit():
+                return f"{hit['ticker'].iloc[0].strip().upper()}.BO"
             names.append(hit["name"].iloc[0])
     for q in [code, *names]:
         hits = search_tickers(q)
