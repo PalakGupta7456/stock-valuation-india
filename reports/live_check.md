@@ -4,18 +4,18 @@
 |---|---|---:|---:|---:|---|---:|---:|---:|---:|
 | TCS.NS | Tata Consultancy Services Limite | ₹2,503 | ₹2,255 | -10% | Hold | 78 | 12/12 | 5 | 4 |
 | INFY.NS | Infosys Limited | ₹1,185 | ₹1,132 | -4% | Hold | 68 | 12/12 | 5 | 4 |
-| RELIANCE.NS | Reliance Industries Limited | ₹1,165 | ₹583 | -50% | Strong Sell | 78 | 12/12 | 4 | 4 |
+| RELIANCE.NS | Reliance Industries Limited | ₹1,165 | ₹583 | -50% | Strong Sell | 63 | 12/12 | 4 | 4 |
 | HDFCBANK.NS | HDFC Bank Limited | ₹693 | ₹605 | -13% | Sell | 55 | 10/12 | 6 | 4 |
 | ICICIBANK.NS | ICICI Bank Limited | ₹1,398 | ₹920 | -34% | Strong Sell | 80 | 10/12 | 6 | 4 |
 | SBIN.NS | State Bank of India | ₹962 | ₹998 | +4% | Hold | 80 | 10/12 | 6 | 4 |
 | BAJFINANCE.NS | Bajaj Finance Limited | ₹939 | ₹413 | -56% | Strong Sell | 45 | 9/12 | 6 | 4 |
 | HDFCLIFE.NS | HDFC Life Insurance Company Limi | ₹525 | ₹225 | -57% | Sell | 45 | 10/12 | 6 | 4 |
-| ITC.NS | ITC Limited | ₹266 | ₹344 | +30% | Buy | 68 | 12/12 | 6 | 4 |
+| ITC.NS | ITC Limited | ₹266 | ₹344 | +30% | Buy | 53 | 12/12 | 6 | 4 |
 | HINDUNILVR.NS | Hindustan Unilever Limited | ₹1,865 | ₹1,159 | -38% | Sell | 55 | 12/12 | 6 | 4 |
 | ASIANPAINT.NS | Asian Paints Limited | ₹2,320 | ₹1,054 | -55% | Sell | 55 | 12/12 | 6 | 4 |
 | MARUTI.NS | Maruti Suzuki India Limited | ₹11,397 | ₹9,875 | -13% | Sell | 68 | 12/12 | 6 | 4 |
 | SUNPHARMA.NS | Sun Pharmaceutical Industries Li | ₹1,778 | ₹1,102 | -38% | Sell | 68 | 12/12 | 6 | 4 |
-| LT.NS | Larsen & Toubro Limited | ₹3,872 | ₹1,716 | -56% | Sell | 68 | 12/12 | 4 | 4 |
+| LT.NS | Larsen & Toubro Limited | ₹3,872 | ₹1,716 | -56% | Sell | 53 | 12/12 | 4 | 4 |
 | ULTRACEMCO.NS | UltraTech Cement Limited | ₹11,045 | ₹5,518 | -50% | Sell | 47 | 12/12 | 6 | 4 |
 | TATASTEEL.NS | Tata Steel Limited | ₹168 | ₹131 | -22% | Sell | 55 | 12/12 | 6 | 4 |
 | NTPC.NS | NTPC Limited | ₹316 | ₹354 | +12% | Hold | 55 | 12/12 | 6 | 4 |
@@ -32,7 +32,7 @@
 | ZYDUSLIFE.NS | Zydus Lifesciences Limited | ₹1,246 | ₹1,011 | -19% | Sell | 68 | 12/12 | 6 | 4 |
 | KPITTECH.NS | KPIT Technologies Limited | ₹530 | ₹698 | +32% | Buy | 68 | 12/12 | 5 | 4 |
 | SWIGGY.NS | Swiggy Limited | ₹177 | ₹400 | +127% | Hold | 33 | 2/12 | 4 | 4 |
-| RELIANCE.BO | Reliance Industries Limited | ₹1,164 | ₹627 | -46% | Strong Sell | 100 | 11/12 | 4 | 4 |
+| RELIANCE.BO | Reliance Industries Limited | ₹1,164 | ₹627 | -46% | Strong Sell | 85 | 11/12 | 4 | 4 |
 | TCS.BO | Tata Consultancy Services Limite | ₹2,496 | ₹2,262 | -9% | Hold | 78 | 12/12 | 5 | 4 |
 
 ### Data notes
@@ -43,4 +43,4 @@
 - **SBIN.NS**: EBIT not reported; approximated as pre-tax income + interest.
 - **BAJFINANCE.NS**: EBIT not reported; approximated as pre-tax income + interest.
 
-_Run 31 Oct 2026 22:16 UTC. Educational output from an automated model, not investment advice._
+_Run 31 Oct 2026 22:22 UTC. Educational output from an automated model, not investment advice._
