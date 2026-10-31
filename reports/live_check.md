@@ -1,4 +1,4 @@
-## Live valuation check: 30/32 tickers valued
+## Live valuation check: 32/32 tickers valued
 
 | Ticker | Company | Price | Fair value | Upside | Rating | Conf. | Methods | Peers | Yrs |
 |---|---|---:|---:|---:|---|---:|---:|---:|---:|
@@ -32,13 +32,8 @@
 | ZYDUSLIFE.NS | Zydus Lifesciences Limited | ₹1,246 | ₹1,011 | -19% | Sell | 68 | 12/12 | 6 | 4 |
 | KPITTECH.NS | KPIT Technologies Limited | ₹530 | ₹698 | +32% | Buy | 68 | 12/12 | 5 | 4 |
 | SWIGGY.NS | Swiggy Limited | ₹177 | ₹400 | +127% | Hold | 33 | 2/12 | 4 | 4 |
-| 500325.BO | ❌ ValueError: Couldn't find a Yahoo Finance listing for BSE code 500325. Try the company nam | | | | | | | | |
-| 532540.BO | ❌ ValueError: Couldn't find a Yahoo Finance listing for BSE code 532540. Try the company nam | | | | | | | | |
-
-### Tickers without a value
-
-- **500325.BO**: ValueError: Couldn't find a Yahoo Finance listing for BSE code 500325. Try the company name instead.
-- **532540.BO**: ValueError: Couldn't find a Yahoo Finance listing for BSE code 532540. Try the company name instead.
+| RELIANCE.BO | Reliance Industries Limited | ₹1,164 | ₹627 | -46% | Strong Sell | 100 | 11/12 | 4 | 4 |
+| TCS.BO | Tata Consultancy Services Limite | ₹2,496 | ₹2,262 | -9% | Hold | 78 | 12/12 | 5 | 4 |
 
 ### Data notes
 
@@ -48,4 +43,4 @@
 - **SBIN.NS**: EBIT not reported; approximated as pre-tax income + interest.
 - **BAJFINANCE.NS**: EBIT not reported; approximated as pre-tax income + interest.
 
-_Run 31 Oct 2026 22:14 UTC. Educational output from an automated model, not investment advice._
+_Run 31 Oct 2026 22:16 UTC. Educational output from an automated model, not investment advice._
