@@ -3,8 +3,8 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/OWNER/REPO/actions/workflows/ci.yml"><img src="https://github.com/OWNER/REPO/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
-  <a href="https://github.com/OWNER/REPO/actions/workflows/live-check.yml"><img src="https://github.com/OWNER/REPO/actions/workflows/live-check.yml/badge.svg" alt="Live data check"></a>
+  <a href="https://github.com/PalakGupta7456/stock-valuation-india/actions/workflows/ci.yml"><img src="https://github.com/PalakGupta7456/stock-valuation-india/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+  <a href="https://github.com/PalakGupta7456/stock-valuation-india/actions/workflows/live-check.yml"><img src="https://github.com/PalakGupta7456/stock-valuation-india/actions/workflows/live-check.yml/badge.svg" alt="Live data check"></a>
   <img src="https://img.shields.io/badge/python-3.11%20|%203.12%20|%203.13-0E5160" alt="Python">
   <img src="https://img.shields.io/badge/built%20with-Streamlit-D98E1F" alt="Streamlit">
   <img src="https://img.shields.io/badge/license-MIT-5D6B70" alt="MIT">
@@ -79,8 +79,8 @@ flowchart LR
 ## Quick start
 
 ```bash
-git clone https://github.com/OWNER/REPO.git
-cd REPO
+git clone https://github.com/PalakGupta7456/stock-valuation-india.git
+cd stock-valuation-india
 python -m venv .venv && source .venv/bin/activate      # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
 streamlit run app.py
