@@ -9,7 +9,7 @@ from __future__ import annotations
 import numpy as np
 import pandas as pd
 
-from . import config
+from . import config  # noqa: F401  (used by clean_multiple)
 
 _IT = ["TCS", "INFY", "HCLTECH", "WIPRO", "TECHM", "LTIM", "PERSISTENT", "COFORGE", "MPHASIS"]
 _BANKS = ["HDFCBANK", "ICICIBANK", "KOTAKBANK", "AXISBANK", "SBIN", "INDUSINDBK", "BANKBARODA",
@@ -72,19 +72,59 @@ PEER_MAP: dict[str, list[str]] = {
     "Grocery Stores": ["DMART", "TRENT"],
     "Agricultural Inputs": ["UPL", "PIIND", "COROMANDEL", "CHAMBLFERT", "SUMICHEM"],
     "Internet Content & Information": ["NAUKRI", "ETERNAL", "SWIGGY", "PAYTM"],
+    "Internet Retail": ["ETERNAL", "SWIGGY", "NYKAA", "INDIAMART", "NAUKRI"],
+    "Specialty Retail": ["TRENT", "DMART", "NYKAA", "TITAN", "VMART"],
+    "Discount Stores": ["DMART", "TRENT", "VMART"],
+    "Travel Services": ["IRCTC", "INDHOTEL", "EASEMYTRIP", "THOMASCOOK"],
+    "Railroads": ["IRCTC", "RVNL", "IRCON", "CONCOR", "TITAGARH"],
+    "Airlines": ["INDIGO", "SPICEJET"],
+    "Lodging": ["INDHOTEL", "EIHOTEL", "CHALET", "LEMONTREE"],
+    "Integrated Freight & Logistics": ["CONCOR", "DELHIVERY", "BLUEDART", "TCI"],
+    "Marine Shipping": ["SCI", "GESHIP"],
+    "Chemicals": ["TATACHEM", "DEEPAKNTR", "GNFC", "AARTIIND"],
+    "Oil & Gas E&P": ["ONGC", "OIL"],
+    "Utilities - Regulated Gas": ["GAIL", "IGL", "MGL", "GUJGASLTD", "PETRONET"],
+    "Textile Manufacturing": ["PAGEIND", "ARVIND", "KPRMILL", "TRIDENT"],
+    "Footwear & Accessories": ["BATAINDIA", "RELAXO", "METROBRAND"],
+    "Entertainment": ["PVRINOX", "SUNTV", "ZEEL", "NAZARA"],
+    "Diagnostics & Research": ["LALPATHLAB", "METROPOLIS", "SYNGENE"],
+    "Mortgage Finance": ["LICHSGFIN", "PNBHOUSING", "AAVAS", "HOMEFIRST", "CANFINHOME"],
+    "Insurance Brokers": ["POLICYBZR"],
 }
+
+# Large, liquid names per Yahoo sector: used to top up thin industry peer groups
+# so every company gets at least a handful of comparables.
+SECTOR_PEERS: dict[str, list[str]] = {
+    "Technology": ["TCS", "INFY", "HCLTECH", "WIPRO", "TECHM", "LTIM", "PERSISTENT"],
+    "Financial Services": ["HDFCBANK", "ICICIBANK", "KOTAKBANK", "AXISBANK", "SBIN", "BAJFINANCE"],
+    "Consumer Defensive": ["HINDUNILVR", "ITC", "NESTLEIND", "BRITANNIA", "DABUR", "DMART", "TATACONSUM"],
+    "Consumer Cyclical": ["MARUTI", "M&M", "TITAN", "TRENT", "BAJAJ-AUTO", "EICHERMOT", "INDHOTEL"],
+    "Healthcare": ["SUNPHARMA", "DRREDDY", "CIPLA", "APOLLOHOSP", "DIVISLAB", "LUPIN"],
+    "Industrials": ["LT", "SIEMENS", "ABB", "HAL", "BEL", "CUMMINSIND", "CONCOR"],
+    "Basic Materials": ["ULTRACEMCO", "ASIANPAINT", "TATASTEEL", "JSWSTEEL", "HINDALCO", "PIDILITIND"],
+    "Energy": ["RELIANCE", "ONGC", "COALINDIA", "BPCL", "IOC", "GAIL"],
+    "Utilities": ["NTPC", "POWERGRID", "TATAPOWER", "ADANIPOWER", "NHPC", "GAIL"],
+    "Communication Services": ["BHARTIARTL", "INDUSTOWER", "IDEA", "TATACOMM", "NAUKRI", "SUNTV"],
+    "Real Estate": ["DLF", "GODREJPROP", "OBEROIRLTY", "PRESTIGE", "LODHA", "PHOENIXLTD"],
+}
+MIN_PEERS = 4
 
 PEER_COLUMNS = ["Ticker", "Name", "Market cap", "P/E", "P/B", "EV/EBITDA", "EV/Sales", "ROE",
                 "Revenue growth"]
 
 
-def suggest_peers(ticker: str, industry: str, n: int = 6) -> list[str]:
-    """Curated peers for a ticker (with exchange suffix), excluding itself."""
-    base, _, suffix = ticker.partition(".")
-    suffix = f".{suffix}" if suffix else config.DEFAULT_SUFFIX
-    # Peer symbols are NSE codes; BSE numeric codes still get NSE peers.
-    peer_suffix = ".NS" if suffix == ".BO" else suffix
-    return [f"{p}{peer_suffix}" for p in PEER_MAP.get(industry, []) if p != base][:n]
+def suggest_peers(ticker: str, industry: str, sector: str = "", n: int = 6) -> list[str]:
+    """Curated peers for a ticker, excluding itself.
+
+    Industry peers come first; if there are fewer than MIN_PEERS, the list is
+    topped up with large companies from the same sector.
+    """
+    base = ticker.split(".")[0]
+    peers = [p for p in PEER_MAP.get(industry, []) if p != base]
+    if len(peers) < MIN_PEERS:
+        peers += [p for p in SECTOR_PEERS.get(sector, []) if p != base and p not in peers]
+    # Peer symbols are NSE codes; NSE has the deepest data on Yahoo.
+    return [f"{p}.NS" for p in peers[:n]]
 
 
 def _num(x) -> float:

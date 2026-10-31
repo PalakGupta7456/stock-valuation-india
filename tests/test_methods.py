@@ -132,6 +132,18 @@ def test_peer_suggestions_exclude_self():
     assert suggest_peers("XYZ.NS", "Some Unknown Industry") == []
 
 
+def test_thin_industry_topped_up_from_sector():
+    peers = suggest_peers("COALINDIA.NS", "Thermal Coal", "Energy")
+    assert len(peers) >= 4 and "COALINDIA.NS" not in peers
+    assert "NMDC.NS" in peers                       # industry peer kept first
+    assert len(suggest_peers("NEWCO.NS", "Unlisted Industry", "Real Estate")) >= 4
+
+
+def test_bse_codes_normalise_to_bo():
+    from valuation import normalise_ticker
+    assert normalise_ticker("500325") == "500325.BO"
+
+
 # --- blended verdict ----------------------------------------------------------
 def _m(name, value, valid=True):
     return MethodResult(name, value, value * 0.9, value * 1.1, valid, "")
@@ -171,4 +183,4 @@ def test_financial_company_switches_to_equity_models():
     rep = value_company(bank, Assumptions(mc_runs=300), demo_peers())
     w = rep.verdict.weights
     assert w.get("DCF (FCFF)", 0) == 0 and w.get("Peer EV/EBITDA", 0) == 0
-    assert w["Residual income"] > 0.3
+    assert w["Residual income"] >= 0.25

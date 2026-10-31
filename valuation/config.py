@@ -65,18 +65,21 @@ AAA_CORPORATE_YIELD = 0.076
 
 # --- Method weights for the blended fair value (renormalised over valid models) --
 # Users can change every weight in the sidebar. Graham is shown for reference.
+# Defaults split roughly 50/50 between intrinsic models (what the cash flows are
+# worth at India's cost of capital) and relative models (what the market pays for
+# similar businesses). Earnings power is a no-growth floor, shown for reference.
 METHOD_WEIGHTS = {
-    "DCF (FCFF)": 25, "DCF (FCFE)": 10, "Residual income": 15,
-    "Peer P/E": 12, "Peer EV/EBITDA": 12, "Peer P/B": 3, "Peer EV/Sales": 3,
-    "Own 5y P/E": 5, "Dividend discount": 5, "Earnings power (no growth)": 10,
+    "DCF (FCFF)": 20, "DCF (FCFE)": 10, "Residual income": 15,
+    "Peer P/E": 15, "Peer EV/EBITDA": 15, "Peer P/B": 5, "Peer EV/Sales": 3,
+    "Own 5y P/E": 12, "Dividend discount": 5, "Earnings power (no growth)": 0,
     "Graham number": 0, "Graham formula": 0,
 }
 # Banks, NBFCs and insurers: debt is raw material, so enterprise-value and
 # cash-flow models are switched off and equity / book-based models lead.
 FINANCIAL_METHOD_WEIGHTS = {
-    "DCF (FCFF)": 0, "DCF (FCFE)": 0, "Residual income": 35,
+    "DCF (FCFF)": 0, "DCF (FCFE)": 0, "Residual income": 30,
     "Peer P/E": 20, "Peer EV/EBITDA": 0, "Peer P/B": 20, "Peer EV/Sales": 0,
-    "Own 5y P/E": 10, "Dividend discount": 15, "Earnings power (no growth)": 0,
+    "Own 5y P/E": 15, "Dividend discount": 15, "Earnings power (no growth)": 0,
     "Graham number": 0, "Graham formula": 0,
 }
 METHOD_FAMILY = {

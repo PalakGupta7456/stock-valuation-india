@@ -42,7 +42,7 @@ def run_one(raw: str) -> dict:
     row = {"input": raw, "ticker": ticker, "ok": False}
     try:
         c = fetch_company(ticker)
-        peers = fetch_peer_multiples(suggest_peers(c.ticker, c.industry))
+        peers = fetch_peer_multiples(suggest_peers(c.ticker, c.industry, c.sector))
         rep = value_company(c, Assumptions(mc_runs=1000), peers)
         v = rep.verdict
         row.update(
@@ -53,7 +53,11 @@ def run_one(raw: str) -> dict:
             confidence=v.confidence, methods=int(rep.method_table["Applies"].sum()),
             peers=len(peers), years=int(c.revenue.dropna().shape[0]),
             notes=" ".join(c.notes),
+            na_methods={m.name: m.note for m in rep.methods if not m.valid},
         )
+        if not row["ok"]:
+            row["error"] = "No method produced a value: " + "; ".join(
+                f"{k}: {v}" for k, v in row["na_methods"].items())
     except Exception as exc:  # noqa: BLE001
         row["error"] = f"{type(exc).__name__}: {exc}"
         row["trace"] = traceback.format_exc(limit=3)
@@ -73,7 +77,15 @@ def to_markdown(rows: list[dict]) -> str:
                          f"{r['peers']} | {r['years']} |")
         else:
             lines.append(f"| {r['ticker']} | ❌ {r.get('error', 'no value')[:90]} | | | | | | | | |")
-    lines += ["", "_Educational output from an automated model, not investment advice._"]
+    fails = [r for r in rows if not r["ok"]]
+    if fails:
+        lines += ["", "### Tickers without a value", ""]
+        lines += [f"- **{r['ticker']}**: {r.get('error', 'unknown')[:400]}" for r in fails]
+    notes = [r for r in rows if r["ok"] and r.get("notes")]
+    if notes:
+        lines += ["", "### Data notes", ""]
+        lines += [f"- **{r['ticker']}**: {r['notes']}" for r in notes]
+    lines += ["", f"_Run {time.strftime('%d %b %Y %H:%M UTC', time.gmtime())}. Educational output from an automated model, not investment advice._"]
     return "\n".join(lines)
 
 
@@ -82,6 +94,8 @@ def main(argv: list[str]) -> int:
     rows = []
     for t in tickers:
         r = run_one(t)
+        if not r["ok"]:   # surfaces as an annotation on the GitHub run
+            print(f"::warning title=No value for {r['ticker']}::{r.get('error', '')[:300]}")
         status = "ok " if r["ok"] else "ERR"
         print(f"[{status}] {r['ticker']:<14} {r.get('rating', r.get('error', ''))!s:<40} {r['seconds']}s",
               flush=True)

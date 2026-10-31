@@ -138,6 +138,8 @@ def normalise_ticker(raw: str, suffix: str = config.DEFAULT_SUFFIX) -> str:
         raise ValueError("Please enter a ticker.")
     if t == "DEMO" or t.startswith("^") or "." in t:
         return t
+    if t.isdigit():               # BSE scrip codes are numeric
+        return f"{t}.BO"
     return f"{t}{suffix}"
 
 
@@ -223,6 +225,43 @@ def _alternate(ticker: str) -> str | None:
     return None
 
 
+def _fx_rate(src: str, dst: str) -> float | None:
+    """Spot rate to convert `src` amounts into `dst` (e.g. USD -> INR)."""
+    import yfinance as yf
+
+    tk = yf.Ticker(f"{src}{dst}=X")
+    try:
+        r = tk.fast_info.get("lastPrice")
+        if r and np.isfinite(r) and r > 0:
+            return float(r)
+    except Exception:  # noqa: BLE001
+        pass
+    try:
+        h = tk.history(period="5d")
+        return float(h["Close"].dropna().iloc[-1]) if len(h) else None
+    except Exception:  # noqa: BLE001
+        return None
+
+
+def resolve_bse_code(code: str) -> str | None:
+    """Yahoo lists BSE stocks as SYMBOL.BO, not by numeric scrip code; translate."""
+    from .universe import DATA_DIR
+
+    names = []
+    path = DATA_DIR / "bse_symbols.csv"
+    if path.exists():
+        df = pd.read_csv(path, dtype=str)
+        hit = df[df["symbol"].str.strip() == code]
+        if len(hit):
+            names.append(hit["name"].iloc[0])
+    for q in [code, *names]:
+        hits = search_tickers(q)
+        if hits:
+            bse = [h for h in hits if h["exchange"] == "BSE"]
+            return (bse or hits)[0]["symbol"]
+    return None
+
+
 def _snapshot_series(value, when: pd.Timestamp) -> pd.Series:
     v = _opt(value)
     return pd.Series([v], index=[when], dtype=float) if v is not None else pd.Series(dtype=float)
@@ -241,6 +280,14 @@ def fetch_company(ticker: str, _tried_alternate: bool = False) -> CompanyData:
         return demo_company()
 
     import yfinance as yf
+
+    base = ticker.split(".")[0]
+    if base.isdigit():                      # numeric BSE scrip code, e.g. 500325
+        resolved = resolve_bse_code(base)
+        if not resolved:
+            raise ValueError(f"Couldn't find a Yahoo Finance listing for BSE code {base}. "
+                             "Try the company name instead.")
+        ticker = resolved
 
     tk = yf.Ticker(ticker)
     try:
@@ -325,6 +372,26 @@ def fetch_company(ticker: str, _tried_alternate: bool = False) -> CompanyData:
         ebitda = ebit + da.reindex(ebit.index).fillna(0) if len(da.dropna()) else \
             _snapshot_series(info.get("ebitda"), revenue.index[-1])
 
+    # --- statements reported in another currency (e.g. Infosys files in USD) ------
+    currency = info.get("currency") or "INR"
+    fin_ccy = info.get("financialCurrency") or currency
+    eps_ttm = _opt(info.get("trailingEps"))
+    if fin_ccy != currency:
+        fx = _fx_rate(fin_ccy, currency)
+        if fx:
+            revenue, ebit, net_income, interest, pretax, tax, da, capex, delta_nwc, ebitda, book_hist = (
+                x * fx for x in (revenue, ebit, net_income, interest, pretax, tax, da, capex, delta_nwc,
+                                 ebitda, book_hist))
+            total_debt, cash, minority, book_equity = (x * fx for x in (total_debt, cash, minority, book_equity))
+            notes.append(f"Statements reported in {fin_ccy}; converted to {currency} at {fx:,.2f}.")
+            fin_ccy = currency
+    # Guard against EPS quoted in a different currency or unit from the price.
+    ni_eps = _latest(net_income, np.nan) / shares
+    if eps_ttm is not None and np.isfinite(ni_eps) and ni_eps > 0 and eps_ttm > 0 \
+            and not (1 / 3 < eps_ttm / ni_eps < 3):
+        notes.append("Yahoo's trailing EPS looked inconsistent with reported net income; using net income / shares.")
+        eps_ttm = None
+
     idx = revenue.index
     align = lambda s: s.reindex(idx) if len(idx) else s  # noqa: E731
 
@@ -340,8 +407,8 @@ def fetch_company(ticker: str, _tried_alternate: bool = False) -> CompanyData:
         name=info.get("longName") or info.get("shortName") or ticker,
         sector=info.get("sector") or "Unknown",
         industry=info.get("industry") or "Unknown",
-        currency=info.get("currency") or "INR",
-        financial_currency=info.get("financialCurrency") or info.get("currency") or "INR",
+        currency=currency,
+        financial_currency=fin_ccy,
         price=float(price),
         shares=float(shares),
         revenue=revenue,
@@ -364,7 +431,7 @@ def fetch_company(ticker: str, _tried_alternate: bool = False) -> CompanyData:
                                  or 0.0),
         ebitda=align(ebitda),
         book_equity_hist=book_hist,
-        eps_ttm=_opt(info.get("trailingEps")),
+        eps_ttm=eps_ttm,
         payout_ratio=_opt(info.get("payoutRatio")),
         analyst_target_mean=_opt(info.get("targetMeanPrice")),
         analyst_target_low=_opt(info.get("targetLowPrice")),

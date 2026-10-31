@@ -99,7 +99,7 @@ from valuation import fetch_company, value_company, Assumptions
 from valuation.peers import suggest_peers, fetch_peer_multiples
 
 c = fetch_company("TCS.NS")
-peers = fetch_peer_multiples(suggest_peers(c.ticker, c.industry))
+peers = fetch_peer_multiples(suggest_peers(c.ticker, c.industry, c.sector))
 rep = value_company(c, Assumptions(growth_high=0.09), peers)
 
 print(rep.verdict.rating, round(rep.verdict.fair_value), f"{rep.verdict.upside:+.0%}")

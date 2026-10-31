@@ -52,6 +52,7 @@ def main() -> int:
             print(f"{name}: {len(df)} companies")
             ok = True
         except Exception as exc:  # keep the previous file if a source is down
+            print(f"::warning title={name.upper()} list not refreshed::{type(exc).__name__}: {exc}")
             print(f"{name}: failed ({exc}); keeping existing file", file=sys.stderr)
     return 0 if ok else 1
 

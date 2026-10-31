@@ -330,7 +330,7 @@ with st.sidebar:
             st.caption("Demo uses five synthetic peers.")
             peer_text = ""
         else:
-            sugg = [p.split(".")[0] for p in suggest_peers(ticker, company.industry)]
+            sugg = [p.split(".")[0] for p in suggest_peers(company.ticker, company.industry, company.sector)]
             peer_text = st.text_area("Peer tickers (comma-separated)", ", ".join(sugg), key=f"{K}peers",
                                      help=f"Suggested from Yahoo industry: {company.industry}.")
             if not sugg:

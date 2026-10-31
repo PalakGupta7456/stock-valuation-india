@@ -10,10 +10,12 @@ results are combined. Code references point to the `valuation/` package.
 | Price, shares, EPS, book value/share, dividend, analyst targets | Yahoo Finance quote summary | Live, cached 1 hour in the app |
 | Income statement, balance sheet, cash flow | Yahoo Finance annual statements | Usually 4 fiscal years for Indian companies |
 | Weekly prices (5 years) for the stock and Nifty 50 (`^NSEI`) | Yahoo Finance | For regression beta and historical P/E |
-| Peer multiples | Yahoo Finance, per peer | Peers from a curated map keyed on Yahoo's industry label (`peers.py`) |
+| Peer multiples | Yahoo Finance, per peer | Curated map keyed on Yahoo's industry label, topped up with large same-sector companies when fewer than 4 (`peers.py`) |
 | Company list for search | NSE `EQUITY_L.csv`, BSE active scrips | Refreshed weekly by GitHub Actions |
 
-**Fallbacks** (`data.py`): a symbol with no price on NSE is retried on BSE (and vice versa); if annual
+**Fallbacks** (`data.py`): numeric BSE scrip codes are translated to Yahoo's `SYMBOL.BO` form; statements
+reported in another currency (e.g. Infosys, which files in USD) are converted at the spot rate; Yahoo's
+trailing EPS is replaced by net income ÷ shares when the two disagree by more than 3×; a symbol with no price on NSE is retried on BSE (and vice versa); if annual
 statements are missing, the trailing-twelve-month snapshot (revenue, operating margin, net income, EBITDA,
 debt, cash, book value) is used and flagged; shares outstanding fall back to implied shares, then market
 cap ÷ price. Every fallback adds a note and, where it matters, a confidence penalty.
@@ -116,8 +118,11 @@ on high-ROE compounders.
 
 ## 6. Blending and the verdict (`recommend.py`)
 
-1. Each method that produces a positive value gets its weight (defaults in `config.py`, editable in the
-   app); weights are renormalised over the methods that apply.
+1. Each method that produces a positive value gets its weight (editable in the app); weights are
+   renormalised over the methods that apply. Defaults split roughly **50/50 between intrinsic and relative**
+   models: FCFF 20, residual income 15, FCFE 10, DDM 5 · peer P/E 15, peer EV/EBITDA 15, own P/E 12,
+   peer P/B 5, peer EV/Sales 3. Earnings power and the Graham rules are shown as reference points
+   (weight 0). For lenders: residual income 30, P/E 20, P/B 20, DDM 15, own P/E 15.
 2. **Fair value** = weighted mean. **Range** = weighted 25th–75th percentile across methods.
 3. **Upside** = fair value ÷ price − 1, mapped to a rating:
 
@@ -131,8 +136,15 @@ on high-ROE compounders.
    above 35% / 60% (−12 / −25), intrinsic and relative blends more than 1.5× / 2× apart (−10 / −20),
    the blend's direction contradicted by most methods (−10), terminal value above 80% of EV (−8), and a
    coin-flip Monte Carlo (−5).
-5. A Strong Buy/Sell with low confidence moves one notch toward Hold; a Buy/Sell with confidence below
-   25 becomes Hold.
+5. **A call is only as strong as the evidence.** With low confidence (below 45), Strong Buy/Sell drop one
+   notch and Buy/Sell become Hold. Consensus ("6 of 9 methods above price") counts only methods that carry
+   weight in the blend.
+
+**Why intrinsic and relative values often disagree for Indian stocks.** With a 10-year G-sec near 7% and
+an equity risk premium near 7%, the cost of equity for an average-risk Indian company is about 14%. At that
+discount rate, a company growing 10–12% is worth roughly 12–18× earnings, while Indian large caps have
+traded at 20–40×. Cash-flow models therefore tend to sit below the market and peer multiples near it. The
+app shows both sub-blends instead of hiding the gap, and lowers confidence when they are far apart.
 
 ## 7. Stress tests (`analysis.py`)
 
