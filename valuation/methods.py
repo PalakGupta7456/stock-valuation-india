@@ -145,12 +145,16 @@ def dividend_discount(c: CompanyData, ke: float, g_high: float, g: float,
     if not (_ok(eps0) and eps0 > 0):
         return na(name, "Earnings are negative; dividends are not covered.")
     payout0 = c.payout
-    g_high = float(np.clip(g_high, -0.05, 0.25))
+    # Dividends can only grow as fast as retained earnings compound: blend the
+    # revenue-growth assumption with sustainable growth = ROE x retention.
+    roe0 = default_roe(c)
+    sustainable = roe0 * (1 - payout0) if roe0 is not None else g_high
+    g_high = float(np.clip(0.5 * g_high + 0.5 * sustainable, -0.05, 0.20))
     value, table, payout_t = _ddm_value(eps0, payout0, g_high, g, ke, roe_terminal)
     lo = _ddm_value(eps0, payout0, g_high, g, ke + 0.01, roe_terminal)[0]
     hi = _ddm_value(eps0, payout0, g_high, g, ke - 0.01, roe_terminal)[0]
     note = (f"Dividends of ₹{c.dividend_per_share:,.1f} today (payout {payout0:.0%}) grow with "
-            f"earnings at {g_high:.1%}; payout rises to a sustainable {payout_t:.0%} by year 10.")
+            f"earnings at {g_high:.1%} (half your growth input, half ROE × retention); payout rises to a sustainable {payout_t:.0%} by year 10.")
     return MethodResult(name, value, lo, hi, True, note,
                         inputs=dict(dps=c.dividend_per_share, payout0=payout0, payout_t=payout_t,
                                     g_high=g_high, ke=ke),

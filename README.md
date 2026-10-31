@@ -28,7 +28,7 @@ Search by name ("asian paints"), NSE symbol (`ASIANPAINT`) or BSE code (`500820`
 - **Stress-tested.** Vectorised 5,000-run Monte Carlo, WACC × growth heatmap, tornado chart, bear/base/bull scenarios and a reverse DCF ("what growth is the price assuming?").
 - **Fully editable.** Every assumption, the peer group and the weight of each method can be changed in the sidebar.
 - **Exportable.** One-click Excel workbook with every model, table and check.
-- **Tested against real stocks.** A GitHub Action values ~30 live tickers (large, mid and small caps, banks, NBFCs, insurers, BSE codes, loss-makers) on every push and every week.
+- **Tested against real stocks.** A GitHub Action values ~30 live tickers (large, mid and small caps, banks, NBFCs, insurers, BSE codes, loss-makers) on every push and every week. **[See the latest live run →](reports/live_check.md)**
 
 ## The twelve methods
 
@@ -52,6 +52,10 @@ Formulas, defaults and the confidence rules are in **[docs/METHODOLOGY.md](docs/
 | ![All methods](docs/screenshots/methods.png) | ![Relative valuation](docs/screenshots/relative.png) |
 | **Residual income, dividends, no-growth value** | **Stress tests** |
 | ![Residual income and DDM](docs/screenshots/residual.png) | ![Stress tests](docs/screenshots/stress.png) |
+
+**Banks are valued differently.** For HDFC Bank, cash-flow DCFs and EV multiples are switched off (hollow dots, 0% weight) and residual income, P/B, P/E and dividends drive the verdict:
+
+![HDFC Bank](docs/screenshots/hdfcbank_overview.png)
 
 <sub>Screenshots are regenerated from live data by the <code>Refresh screenshots</code> workflow.</sub>
 

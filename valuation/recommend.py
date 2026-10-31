@@ -88,8 +88,9 @@ def build_verdict(price: float, methods: list[MethodResult], raw_weights: dict,
 
     upside = fair / price - 1 if np.isfinite(fair) and fair > 0 else float("nan")
     raw = rate(upside) if np.isfinite(upside) else "No rating"
-    above = sum(1 for m in valid if m.family != "Rule of thumb" and m.value > price)
-    n_valid = sum(1 for m in valid if m.family != "Rule of thumb")
+    # Consensus counts the methods that actually drive the blend (weight > 0).
+    above = sum(1 for m in used if m.value > price)
+    n_valid = len(used)
 
     # --- confidence -------------------------------------------------------
     score = 100 - sum(f.penalty for f in flags)

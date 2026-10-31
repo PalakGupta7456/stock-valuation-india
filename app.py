@@ -393,7 +393,7 @@ else:
 gap_txt = ""
 if fin(intrinsic_v) and fin(relative_v):
     gap_txt = (f"Intrinsic methods say {inr(intrinsic_v)}; market-relative methods say {inr(relative_v)}. ")
-igr = (f"The price implies {pct(rep.implied_growth)} annual revenue growth for five years, versus "
+igr = "" if c.is_financial else (f"The price implies {pct(rep.implied_growth)} annual revenue growth for five years, versus "
        f"{pct(d['hist_revenue_cagr'])} historically. " if rep.implied_growth is not None else "")
 st.markdown(f"""
 <div class="verdict" style="--vc:{vc}">
@@ -412,6 +412,8 @@ kpis = [
     ("Upside", pct(v.upside, 0, sign=True), "Fair value vs market price"),
     ("Intrinsic", inr(intrinsic_v), "Cash flow, book & dividend models"),
     ("Relative", inr(relative_v), "Peer & historical multiples"),
+    ("Residual income", inr(rep.method("Residual income").value), "Lead model for lenders")
+    if c.is_financial else
     ("Chance undervalued", pct(rep.monte_carlo.prob_undervalued, 0), "DCF Monte Carlo"),
     ("Analyst target", inr(c.analyst_target_mean), an),
 ]
@@ -455,9 +457,10 @@ with tabs[0]:
     if fin(c.analyst_target_mean):
         fig.add_vline(x=c.analyst_target_mean, line_color=HOLD, line_dash="dash", line_width=1,
                       annotation_text=f"Analysts {inr(c.analyst_target_mean)}",
-                      annotation_position="top right" if c.analyst_target_mean > c.price else "top left",
+                      annotation_position="top right" if c.analyst_target_mean >= c.price else "top left",
                       annotation_font_color=HOLD)
-    price_line(fig, c.price)
+    price_line(fig, c.price, pos="top right" if fin(c.analyst_target_mean) and c.analyst_target_mean < c.price
+               else "top left")
     fig.update_layout(barmode="overlay", xaxis_title="Value per share (₹)")
     fig.update_yaxes(categoryorder="array", categoryarray=labels)
     st.plotly_chart(style_fig(fig, 520), width="stretch")
@@ -702,6 +705,9 @@ with tabs[4]:
 # --- Stress tests -------------------------------------------------------------
 with tabs[5]:
     mc = rep.monte_carlo
+    if c.is_financial:
+        st.info("These stress tests run on the cash-flow DCF, which is switched off for lenders. They are shown "
+                "for completeness; the verdict for this company rests on residual income, P/B, P/E and dividends.")
     st.subheader("Monte Carlo (FCFF DCF)")
     vals = mc.values
     if len(vals):
