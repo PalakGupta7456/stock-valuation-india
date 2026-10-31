@@ -43,8 +43,8 @@ jobs:
           git add docs/screenshots
           git diff --cached --quiet && echo "No changes" && exit 0
           git commit -m "Refresh screenshots with live data"
-          git pull --rebase
-          git push
+          for i in 1 2 3 4 5; do git pull --rebase && git push && exit 0; sleep $((i * 5)); done
+          exit 1
       - uses: actions/upload-artifact@v5
         if: always()
         with:
